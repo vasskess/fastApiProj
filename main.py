@@ -36,6 +36,12 @@ def find_post(id):
     # return {"message": f"Post with id: {id} is not found"}
 
 
+def find_post_index(id):
+    for index, post_entry in enumerate(my_fake_db):
+        if post_entry["id"] == id:
+            return index
+
+
 class Post(BaseModel):
     title: str
     content: str
@@ -45,7 +51,7 @@ class Post(BaseModel):
 
 @app.get("/")
 async def root():
-    return {"message": "Hello World from my new branch"}
+    return {"message": "Hello World from my First fastAPI try"}
 
 
 @app.get("/posts")
@@ -65,3 +71,10 @@ def create_post(post: Post):
 def get_post(id: int):
     post = find_post(int(id))
     return post
+
+
+@app.delete("/post/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(id: int):
+    index = find_post_index(id)
+    my_fake_db.pop(index)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
