@@ -1,7 +1,8 @@
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response, HTTPException
 from pydantic import BaseModel
+from starlette import status
 
 app = FastAPI()
 
@@ -24,6 +25,17 @@ my_fake_db = [
 ]
 
 
+def find_post(id):
+    for post_entry in my_fake_db:
+        if post_entry["id"] == id:
+            return post_entry
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id: {id} is not found"
+    )
+    # response.status_code = status.HTTP_404_NOT_FOUND
+    # return {"message": f"Post with id: {id} is not found"}
+
+
 class Post(BaseModel):
     title: str
     content: str
@@ -41,16 +53,15 @@ def get_posts():
     return my_fake_db
 
 
-@app.post("/posts")
+@app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_post(post: Post):
     post_dict = post.model_dump()
     post_dict["id"] = len(my_fake_db) + 1
     my_fake_db.append(post_dict)
+    return post_dict
+
+
+@app.get("/post/{id}")
+def get_post(id: int):
+    post = find_post(int(id))
     return post
-    # return {
-    #     "Additional information": None, # This is null in JSON
-    #     "Title":post.title,
-    #     "Post": post.content,
-    #     "Is it published": post.published,
-    #     "Rating": post.rating
-    # }
