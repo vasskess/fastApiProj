@@ -66,6 +66,15 @@ def get_post(id: int):
     return post
 
 
+@app.put("/posts/{id}", status_code=status.HTTP_200_OK)
+def update_post(id: int, post: Post):
+    _, index = get_post_and_index(int(id))
+    post_dict = post.model_dump()
+    post_dict["id"] = id
+    my_fake_db[index] = post_dict
+    return {"message": "Post successfully updated", "update_post": post_dict}
+
+
 @app.delete("/post/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
     post, index = get_post_and_index(id)
