@@ -1,3 +1,4 @@
+from statistics import multimode
 from typing import Optional
 
 from fastapi import FastAPI, Response, HTTPException
@@ -25,21 +26,13 @@ my_fake_db = [
 ]
 
 
-def find_post(id):
-    for post_entry in my_fake_db:
-        if post_entry["id"] == id:
-            return post_entry
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id: {id} is not found"
-    )
-    # response.status_code = status.HTTP_404_NOT_FOUND
-    # return {"message": f"Post with id: {id} is not found"}
-
-
-def find_post_index(id):
+def get_post_and_index(id: int):
     for index, post_entry in enumerate(my_fake_db):
         if post_entry["id"] == id:
-            return index
+            return post_entry, index
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id: {id} not found"
+    )
 
 
 class Post(BaseModel):
@@ -69,12 +62,12 @@ def create_post(post: Post):
 
 @app.get("/post/{id}")
 def get_post(id: int):
-    post = find_post(int(id))
+    post, index = get_post_and_index(int(id))
     return post
 
 
 @app.delete("/post/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
-    index = find_post_index(id)
+    post, index = get_post_and_index(id)
     my_fake_db.pop(index)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
