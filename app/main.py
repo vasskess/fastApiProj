@@ -59,7 +59,9 @@ async def root():
 
 @app.get("/posts")
 def get_posts():
-    return my_fake_db
+    cursor.execute(" SELECT * FROM books")
+    posts = cursor.fetchall()
+    return {"posts": posts}
 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
@@ -72,8 +74,9 @@ def create_post(post: Post):
 
 @app.get("/post/{id}")
 def get_post(id: int):
-    post, index = get_post_and_index(int(id))
-    return post
+    cursor.execute(" SELECT * FROM books WHERE id = %s", (id,))
+    post = cursor.fetchone()
+    return {"post": post}
 
 
 @app.put("/posts/{id}", status_code=status.HTTP_200_OK)
