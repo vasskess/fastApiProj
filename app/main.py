@@ -1,12 +1,22 @@
-from statistics import multimode
 from typing import Optional
 
 from fastapi import FastAPI, Response, HTTPException
 from pydantic import BaseModel
 from starlette import status
+import psycopg2
+
 
 app = FastAPI()
 
+try:
+    conn = psycopg2.connect(
+        host="localhost", database="postgres", user="postgres", password="vaskes"
+    )
+    cursor = conn.cursor()
+    print("Connected to PostgreSQL")
+except psycopg2.Error as e:
+    print("No database connection")
+    print(f"Error was: {e}")
 
 my_fake_db = [
     {
@@ -26,6 +36,13 @@ my_fake_db = [
 ]
 
 
+class Post(BaseModel):
+    title: str
+    content: str
+    published: bool = True
+    rating: Optional[float] = None
+
+
 def get_post_and_index(id: int):
     for index, post_entry in enumerate(my_fake_db):
         if post_entry["id"] == id:
@@ -33,13 +50,6 @@ def get_post_and_index(id: int):
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id: {id} not found"
     )
-
-
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True
-    rating: Optional[float] = None
 
 
 @app.get("/")
