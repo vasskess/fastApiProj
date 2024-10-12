@@ -18,38 +18,12 @@ except psycopg2.Error as e:
     print("No database connection")
     print(f"Error was: {e}")
 
-my_fake_db = [
-    {
-        "id": 1,
-        "title": "Lord of the Rings",
-        "content": "Book I",
-        "published": True,
-        "rating": 9.9,
-    },
-    {
-        "id": 2,
-        "title": "Lord of the Rings",
-        "content": "Book II",
-        "published": True,
-        "rating": 8.5,
-    },
-]
-
 
 class Post(BaseModel):
     title: str
     content: str
     published: bool = True
     rating: Optional[float] = None
-
-
-def get_post_and_index(id: int):
-    for index, post_entry in enumerate(my_fake_db):
-        if post_entry["id"] == id:
-            return post_entry, index
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id: {id} not found"
-    )
 
 
 @app.get("/")
@@ -66,30 +40,60 @@ def get_posts():
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_post(post: Post):
-    post_dict = post.model_dump()
-    post_dict["id"] = len(my_fake_db) + 1
-    my_fake_db.append(post_dict)
-    return post_dict
+    cursor.execute(
+        """INSERT INTO books (title, content, published, rating) VALUES (%s, %s, %s, %s) RETURNING *""",
+        (post.title, post.content, post.published, post.rating),
+    )  # This is the proper syntax to prevent SQLinjection !!!
+    new_post = cursor.fetchone()
+    conn.commit()  # This is how you safe in the DB !
+    return {"post": new_post}
 
 
 @app.get("/post/{id}")
 def get_post(id: int):
     cursor.execute(" SELECT * FROM books WHERE id = %s", (id,))
     post = cursor.fetchone()
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post with id: {id} not found",
+        )
     return {"post": post}
 
 
 @app.put("/posts/{id}", status_code=status.HTTP_200_OK)
 def update_post(id: int, post: Post):
-    _, index = get_post_and_index(int(id))
-    post_dict = post.model_dump()
-    post_dict["id"] = id
-    my_fake_db[index] = post_dict
-    return {"message": "Post successfully updated", "update_post": post_dict}
+    cursor.execute(
+        " UPDATE books SET title = %s, content = %s, published = %s, rating = %s WHERE id = %s RETURNING *",
+        (
+            post.title,
+            post.title,
+            post.published,
+            post.rating,
+            id,
+        ),
+    )
+    conn.commit()
+    updated_post = cursor.fetchone()
+    if not updated_post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post with id: {id} not found",
+        )
+    return {"post": updated_post}
 
 
 @app.delete("/post/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
-    post, index = get_post_and_index(id)
-    my_fake_db.pop(index)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+    cursor.execute(" SELECT * FROM books WHERE id = %s", (id,))
+    post = cursor.fetchone()
+
+    if not post:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Post with id: {id} not found",
+        )
+
+    cursor.execute(" DELETE FROM books WHERE id = %s", (id,))
+    conn.commit()
+    return {"message": "Post successfully deleted"}
