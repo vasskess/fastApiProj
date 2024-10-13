@@ -1,10 +1,12 @@
+import psycopg2
 from typing import Optional
 
-from fastapi import FastAPI, Response, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel
-from starlette import status
-import psycopg2
+from app import models
+from app.database import engine, get_db
 
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -33,7 +35,7 @@ async def root():
 
 @app.get("/posts")
 def get_posts():
-    cursor.execute(" SELECT * FROM books")
+    cursor.execute(" SELECT * FROM posts")
     posts = cursor.fetchall()
     return {"posts": posts}
 
@@ -41,7 +43,7 @@ def get_posts():
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
 def create_post(post: Post):
     cursor.execute(
-        """INSERT INTO books (title, content, published, rating) VALUES (%s, %s, %s, %s) RETURNING *""",
+        """INSERT INTO posts (title, content, published, rating) VALUES (%s, %s, %s, %s) RETURNING *""",
         (post.title, post.content, post.published, post.rating),
     )  # This is the proper syntax to prevent SQLinjection !!!
     new_post = cursor.fetchone()
@@ -51,7 +53,7 @@ def create_post(post: Post):
 
 @app.get("/post/{id}")
 def get_post(id: int):
-    cursor.execute(" SELECT * FROM books WHERE id = %s", (id,))
+    cursor.execute(" SELECT * FROM posts WHERE id = %s", (id,))
     post = cursor.fetchone()
     if not post:
         raise HTTPException(
@@ -64,10 +66,10 @@ def get_post(id: int):
 @app.put("/posts/{id}", status_code=status.HTTP_200_OK)
 def update_post(id: int, post: Post):
     cursor.execute(
-        " UPDATE books SET title = %s, content = %s, published = %s, rating = %s WHERE id = %s RETURNING *",
+        " UPDATE posts SET title = %s, content = %s, published = %s, rating = %s WHERE id = %s RETURNING *",
         (
             post.title,
-            post.title,
+            post.content,
             post.published,
             post.rating,
             id,
@@ -85,7 +87,7 @@ def update_post(id: int, post: Post):
 
 @app.delete("/post/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(id: int):
-    cursor.execute(" SELECT * FROM books WHERE id = %s", (id,))
+    cursor.execute(" SELECT * FROM posts WHERE id = %s", (id,))
     post = cursor.fetchone()
 
     if not post:
@@ -94,6 +96,6 @@ def delete_post(id: int):
             detail=f"Post with id: {id} not found",
         )
 
-    cursor.execute(" DELETE FROM books WHERE id = %s", (id,))
+    cursor.execute(" DELETE FROM posts WHERE id = %s", (id,))
     conn.commit()
     return {"message": "Post successfully deleted"}
