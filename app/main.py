@@ -1,11 +1,10 @@
 import psycopg2
-from typing import Optional
 
 from fastapi import FastAPI, HTTPException, status, Depends
-from pydantic import BaseModel
+
 from sqlalchemy.orm import Session
 
-from app import models
+from app import models, schemas
 from app.database import engine, get_db
 
 models.Base.metadata.create_all(bind=engine)
@@ -23,13 +22,6 @@ except psycopg2.Error as e:
     print(f"Error was: {e}")
 
 
-class Post(BaseModel):
-    title: str
-    content: str
-    published: bool = True
-    rating: Optional[float] = None
-
-
 @app.get("/")
 async def root():
     return {"message": "Hello World from my First fastAPI try"}
@@ -44,7 +36,7 @@ def get_posts(db: Session = Depends(get_db)):
 
 
 @app.post("/posts", status_code=status.HTTP_201_CREATED)
-def create_post(post: Post, db: Session = Depends(get_db)):
+def create_post(post: schemas.CreatePost, db: Session = Depends(get_db)):
     # cursor.execute(
     #     """INSERT INTO posts (title, content, published, rating) VALUES (%s, %s, %s, %s) RETURNING *""",
     #     (post.title, post.content, post.published, post.rating),
@@ -78,7 +70,7 @@ def get_post(id: int, db: Session = Depends(get_db)):
 
 
 @app.put("/posts/{id}", status_code=status.HTTP_200_OK)
-def update_post(id: int, post: Post, db: Session = Depends(get_db)):
+def update_post(id: int, post: schemas.UpdatePost, db: Session = Depends(get_db)):
     # cursor.execute(
     #     " UPDATE posts SET title = %s, content = %s, published = %s, rating = %s WHERE id = %s RETURNING *",
     #     (
