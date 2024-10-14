@@ -27,15 +27,17 @@ async def root():
     return {"message": "Hello World from my First fastAPI try"}
 
 
-@app.get("/posts")
+@app.get("/posts", response_model=list[schemas.PostResponse])
 def get_posts(db: Session = Depends(get_db)):
     # cursor.execute(" SELECT * FROM posts")
     # posts = cursor.fetchall()
     posts = db.query(models.Posts).all()
-    return {"posts": posts}
+    return posts
 
 
-@app.post("/posts", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/posts", status_code=status.HTTP_201_CREATED, response_model=schemas.PostResponse
+)
 def create_post(post: schemas.CreatePost, db: Session = Depends(get_db)):
     # cursor.execute(
     #     """INSERT INTO posts (title, content, published, rating) VALUES (%s, %s, %s, %s) RETURNING *""",
@@ -53,10 +55,10 @@ def create_post(post: schemas.CreatePost, db: Session = Depends(get_db)):
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
-    return {"post": new_post}
+    return new_post
 
 
-@app.get("/post/{id}")
+@app.get("/post/{id}", response_model=schemas.PostResponse)
 def get_post(id: int, db: Session = Depends(get_db)):
     # cursor.execute(" SELECT * FROM posts WHERE id = %s", (id,))
     # post = cursor.fetchone()
@@ -66,10 +68,12 @@ def get_post(id: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Post with id: {id} not found",
         )
-    return {"post": post}
+    return post
 
 
-@app.put("/posts/{id}", status_code=status.HTTP_200_OK)
+@app.put(
+    "/posts/{id}", status_code=status.HTTP_200_OK, response_model=schemas.PostResponse
+)
 def update_post(id: int, post: schemas.UpdatePost, db: Session = Depends(get_db)):
     # cursor.execute(
     #     " UPDATE posts SET title = %s, content = %s, published = %s, rating = %s WHERE id = %s RETURNING *",
@@ -94,7 +98,7 @@ def update_post(id: int, post: schemas.UpdatePost, db: Session = Depends(get_db)
     post_query.update(post.model_dump())
     db.commit()
     db.refresh(updated_post)
-    return {"post": updated_post}
+    return updated_post
 
 
 @app.delete("/post/{id}", status_code=status.HTTP_204_NO_CONTENT)

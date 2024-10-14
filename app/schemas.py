@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class MainPost(BaseModel):
@@ -14,3 +14,9 @@ class CreatePost(MainPost):
 
 class UpdatePost(MainPost):
     pass
+
+
+class PostResponse(MainPost):
+
+    class Config:
+        from_attribute = True
