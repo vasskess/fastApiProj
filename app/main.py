@@ -1,6 +1,8 @@
 import psycopg2
 
 from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.staticfiles import StaticFiles
 
 from sqlalchemy.orm import Session
 
@@ -12,7 +14,10 @@ from passlib.context import CryptContext
 models.Base.metadata.create_all(bind=engine)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-app = FastAPI()
+app = FastAPI(docs_url=None)
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
 
 try:
     conn = psycopg2.connect(
@@ -23,6 +28,16 @@ try:
 except psycopg2.Error as e:
     print("No database connection")
     print(f"Error was: {e}")
+
+
+@app.get("/docs", include_in_schema=False)
+async def custom_swagger_ui_html():
+    return get_swagger_ui_html(
+        openapi_url=app.openapi_url,
+        title=f"{app.title} - Swagger UI",
+        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
+        swagger_css_url="/static/dark-theme.css",
+    )
 
 
 @app.get("/")
