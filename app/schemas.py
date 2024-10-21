@@ -34,6 +34,7 @@ class PostResponse(MainPost):
 class CreateUser(BaseModel):
     email: EmailStr
     password: str
+    phone: str
 
 
 class UserResponse(CreateUser):
